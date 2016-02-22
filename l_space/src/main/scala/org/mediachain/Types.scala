@@ -3,13 +3,22 @@ package org.mediachain
 object Types {
   import gremlin.scala._
   import java.util.UUID
+  import shapeless._
 
   val DescribedBy = "described-by"
   val AuthoredBy  = "authored-by"
 
+  trait Queryable {
+    def queryTerms[T <: HList](): T
+  }
+
   @label("Canonical")
   case class Canonical(@id id: String,
-                       canonicalID: String)
+                       canonicalID: String) extends Queryable {
+    def queryTerms(): = {
+      ("canonicalID", canonicalID) :: HNil
+    }
+  }
 
   object Canonical {
     def create(): Canonical = {

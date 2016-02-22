@@ -5,7 +5,15 @@ import org.mediachain.Types._
 
 object Query {
   import gremlin.scala._
-  import shapeless._
+  import shapeless.{Poly, HNil}
+
+  object buildQuery extends Poly {
+    implicit def caseAll[T] = use { (q: GremlinScala[Vertex, HNil], x: (String, T)) =>
+      x match {
+        case (label, value) => q.has(Key[T](label), value)
+      }
+    }
+  }
 
   /** Finds a vertex with label "Person" and traits matching `p` in the graph
     * `g`.
