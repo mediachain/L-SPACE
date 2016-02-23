@@ -14,8 +14,18 @@ object Types {
 
   case class QueryTerms[L <: HList](terms: Tuple2[String, String] :: L)(implicit val c: LUBConstraint[L, Tuple2[String, String]])
 
+  /**
+    * Convert from the AnyRef returned by Vertex.id()
+    * to an Option[String]
+    * @param v a Vertex
+    * @return Some("StringId"), or None if no id exists
+    */
+  def vertexId(v: Vertex): Option[String] = {
+    Option(v.id).map(_.toString)
+  }
+
   @label("Canonical")
-  case class Canonical(@id id: String,
+  case class Canonical(@id id: Option[String],
                        canonicalID: String) extends Queryable {
     def queryTerms = {
       QueryTerms(("canonicalID", canonicalID) :: HNil)
@@ -24,12 +34,12 @@ object Types {
 
   object Canonical {
     def create(): Canonical = {
-      Canonical("", UUID.randomUUID.toString)
+      Canonical(None, UUID.randomUUID.toString)
     }
 
     def apply(v: Vertex): Canonical = {
       Canonical(
-        v.value[String]("id"),
+        vertexId(v),
         v.value[String]("canonicalID")
       )
     }
@@ -38,11 +48,11 @@ object Types {
   sealed trait MetadataBlob
 
   @label("RawMetadataBlob")
-  case class RawMetadataBlob(@id id: String,
+  case class RawMetadataBlob(@id id: Option[String],
                              blob: String) extends MetadataBlob
 
   @label("Person")
-  case class Person(@id id: String,
+  case class Person(@id id: Option[String],
                     name: String) extends MetadataBlob
 
   object Person {
@@ -50,7 +60,7 @@ object Types {
       if (v.label() == "Person") {
         Some(
           Person(
-            id = v.value("id"),
+            vertexId(v),
             name = v.value("name")
           )
         )
@@ -61,10 +71,28 @@ object Types {
   }
 
   @label("PhotoBlob")
-  case class PhotoBlob(@id id: String,
+  case class PhotoBlob(@id id: Option[String],
                        title: String,
                        description: String,
                        date: String,
                        author: Option[Person]) extends MetadataBlob
+
+  object PhotoBlob {
+    def apply(v: Vertex): Option[PhotoBlob] = {
+      if (v.label() == "PhotoBlob") {
+        Some(
+          PhotoBlob(
+            vertexId(v),
+            title = v.value("title"),
+            description = v.value("description"),
+            date = v.value("date"),
+            author = None // FIXME(yusef)
+          )
+        )
+      } else {
+        None
+      }
+    }
+  }
 }
 
