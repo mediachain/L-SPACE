@@ -9,14 +9,16 @@ object Types {
   val AuthoredBy  = "authored-by"
 
   trait Queryable {
-    def queryTerms[T <: HList](): T
+    def queryTerms: QueryTerms[_]
   }
+
+  case class QueryTerms[L <: HList](terms: Tuple2[String, String] :: L)(implicit val c: LUBConstraint[L, Tuple2[String, String]])
 
   @label("Canonical")
   case class Canonical(@id id: String,
                        canonicalID: String) extends Queryable {
-    def queryTerms(): = {
-      ("canonicalID", canonicalID) :: HNil
+    def queryTerms = {
+      QueryTerms(("canonicalID", canonicalID) :: HNil)
     }
   }
 
