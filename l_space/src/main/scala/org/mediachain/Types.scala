@@ -12,6 +12,14 @@ object Types {
   val ModifiedBy  = "modified-by"
   val AuthoredBy  = "authored-by"
 
+  val IDKey          = Key[String]("id")
+  val CanonicalIDKey = Key[String]("canonicalID")
+  val BlobKey        = Key[String]("blob")
+  val NameKey        = Key[String]("name")
+  val TitleKey       = Key[String]("title")
+  val DescriptionKey = Key[String]("description")
+  val DateKey        = Key[String]("date")
+
   /**
     * Convert from the AnyRef returned by Vertex.id()
     * to an Option[ElementID]
@@ -30,15 +38,29 @@ object Types {
       val id = getID().getOrElse(throw new IllegalStateException("Malformed vertex object: no id"))
       graph.V(id).headOption()
     }
+
+    protected def withInsertHelper(graph: Graph)(fn: => Vertex):
+    Vertex = getID()
+      .flatMap { _ => vertex(graph) }
+      .getOrElse(fn)
+
+    def insert(graph: Graph): Vertex
   }
 
-  @label("Canonical")
-  case class Canonical(@id id: Option[ElementID],
+  trait VertexObject {
+    def label: String
+  }
+
+  case class Canonical(id: Option[ElementID],
                        canonicalID: String) extends VertexClass {
     def getID(): Option[ElementID] = id
+
+    def insert(graph: Graph): Vertex = withInsertHelper(graph) {
+      graph + (Canonical.label, CanonicalIDKey -> canonicalID)
+    }
   }
 
-  object Canonical {
+  object Canonical extends VertexObject {
     def create(): Canonical = {
       Canonical(None, UUID.randomUUID.toString)
     }
@@ -49,23 +71,35 @@ object Types {
         v.value[String]("canonicalID")
       )
     }
+
+    def label = "Canonical"
   }
 
   sealed trait MetadataBlob extends VertexClass
 
-  @label("RawMetadataBlob")
-  case class RawMetadataBlob(@id id: Option[ElementID],
+  case class RawMetadataBlob(id: Option[ElementID],
                              blob: String) extends MetadataBlob {
     def getID(): Option[ElementID] = id
+
+    def insert(graph: Graph): Vertex = withInsertHelper(graph) {
+      graph + (RawMetadataBlob.label, BlobKey -> blob)
+    }
   }
 
-  @label("Person")
-  case class Person(@id id: Option[ElementID],
+  object RawMetadataBlob extends VertexObject {
+    def label = "RawMetadataBlob"
+  }
+
+  case class Person(id: Option[ElementID],
                     name: String) extends MetadataBlob {
     def getID(): Option[ElementID] = id
+
+    def insert(graph: Graph): Vertex = withInsertHelper(graph) {
+      graph + (Person.label, NameKey -> name)
+    }
   }
 
-  object Person {
+  object Person extends VertexObject {
     def create(name: String) = {
       Person(None, name)
     }
@@ -82,18 +116,26 @@ object Types {
         None
       }
     }
+
+    def label = "Person"
   }
 
-  @label("PhotoBlob")
-  case class PhotoBlob(@id id: Option[ElementID],
+  case class PhotoBlob(id: Option[ElementID],
                        title: String,
                        description: String,
                        date: String,
                        author: Option[Person]) extends MetadataBlob {
     def getID(): Option[ElementID] = id
+
+    def insert(graph: Graph): Vertex = withInsertHelper(graph) {
+      graph + (PhotoBlob.label,
+        TitleKey -> title,
+        DescriptionKey -> description,
+        DateKey -> date)
+    }
   }
 
-  object PhotoBlob {
+  object PhotoBlob extends VertexObject {
     def apply(v: Vertex): Option[PhotoBlob] = {
       if (v.label() == "PhotoBlob") {
         Some(
@@ -109,6 +151,8 @@ object Types {
         None
       }
     }
+
+    def label = "PhotoBlob"
   }
 }
 

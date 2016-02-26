@@ -18,11 +18,11 @@ object Query {
     // at some point, this should prob search for inbound edge of HEAD or do
     // something to promote fielding multiple valid-ish results
     graph.V
-      .hasLabel[Person]
+      .hasLabel(Person.label)
       .has(Name, p.name)
       .in(DescribedBy)
       .headOption
-      .map(_.toCC[Canonical])
+      .map(Canonical.apply)
   }
 
   def findPhotoBlob(graph: Graph, p: PhotoBlob): Option[Canonical] = {
@@ -32,13 +32,13 @@ object Query {
 
     // TODO(bigs): simplify this `has` stuff with HList
     graph.V
-      .hasLabel[PhotoBlob]
+      .hasLabel(PhotoBlob.label)
       .has(Title, p.title)
       .has(Description, p.description)
       .has(Date, p.date)
       .in(DescribedBy)
       .headOption
-      .map(_.toCC[Canonical])
+      .map(Canonical.apply)
   }
 
   def rootRevisionVertexForBlob[T <: MetadataBlob](graph: Graph, blob: T): Option[Vertex] = {
@@ -58,7 +58,7 @@ object Query {
       .headOption()
 
 
-    canonicalV.map(_.toCC[Canonical])
+    canonicalV.map(Canonical.apply)
   }
 
   def findCanonicalForBlob[T <: MetadataBlob](graph: Graph, blob: T): Option[Canonical] = {
@@ -78,7 +78,7 @@ object Query {
         .repeat(_.in(ModifiedBy))
         .out(AuthoredBy)
         .headOption()
-    }.map(_.toCC[Canonical])
+    }.map(Canonical.apply)
   }
 
   def findWorks(graph: Graph, p: Person): Option[List[Canonical]] = {

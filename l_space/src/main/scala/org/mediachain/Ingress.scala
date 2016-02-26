@@ -10,8 +10,8 @@ object Ingress {
     // otherwise create a new Person vertex and canonial
     // and return the canonical
     Query.findPerson(graph, author).getOrElse {
-      val canonicalVertex = graph + Canonical.create
-      val personVertex = graph + author
+      val canonicalVertex = Canonical.create.insert(graph)
+      val personVertex = author.insert(graph)
 
       canonicalVertex --- DescribedBy --> personVertex
 
@@ -27,8 +27,8 @@ object Ingress {
 
     // 2) check to see if a duplicate entry exists
     Query.findPhotoBlob(graph, photo).getOrElse {
-      val canonicalVertex = graph + Canonical.create
-      val photoVertex = graph + photo
+      val canonicalVertex = Canonical.create.insert(graph)
+      val photoVertex = photo.insert(graph)
 
       canonicalVertex --- DescribedBy --> photoVertex
 
@@ -46,7 +46,7 @@ object Ingress {
 
   def modifyPhotoBlob(graph: Graph, parentVertex: Vertex, photo: PhotoBlob): Option[Canonical] = {
     Query.findPhotoBlob(graph, photo).orElse {
-      val childVertex = graph + photo
+      val childVertex = photo.insert(graph)
       parentVertex --- ModifiedBy --> childVertex
 
       val author: Option[Canonical] = photo.author.flatMap { p =>

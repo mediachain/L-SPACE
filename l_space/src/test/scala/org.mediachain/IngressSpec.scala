@@ -32,7 +32,7 @@ object IngressSpec extends Specification with Orientable {
     photoBlobs.foreach(Ingress.addPhotoBlob(graph, _))
     graph.commit
 
-    val people = graph.V.hasLabel[Person].toCC[Person].toList
+    val people = graph.V.hasLabel(Person.label).toList.flatMap(x => Person(x))
     people.size shouldEqual 1
 
     val person = people.head
@@ -42,7 +42,8 @@ object IngressSpec extends Specification with Orientable {
     val photos = graph.V(person.id.get)
       .in(AuthoredBy)
       .out(DescribedBy)
-      .toCC[PhotoBlob].toList()
+      .toList()
+      .flatMap(x => PhotoBlob(x))
 
     photos.size shouldEqual 2
 
