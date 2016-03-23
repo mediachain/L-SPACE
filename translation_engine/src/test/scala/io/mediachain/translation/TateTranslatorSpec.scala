@@ -30,7 +30,7 @@ object TateTranslatorSpec extends Specification with XorMatchers {
       def matchBundleElement(expected: (BundleKey, MetadataBlob)) = expected.zip(===, ===)
 
       translated must beRightXor { blobBundle: BlobBundle =>
-        blobBundle must contain(matchBundleElement(BundleKey.Self, PhotoBlob(None, expected.title, "", "")))
+        blobBundle must contain(matchBundleElement((BundleKey.Self, PhotoBlob(None, expected.title, "", ""))))
       }
     }
   }

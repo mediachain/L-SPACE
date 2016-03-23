@@ -13,8 +13,10 @@ object FSLoaderSpec extends Specification with XorMatchers with JsonMatchers {
   object NoopTranslator extends Translator {
     val name = "noop"
     val version = 0
-    def translate(json: JObject): Xor[TranslationError, PhotoBlob] = {
-      Xor.right(PhotoBlob(None, "test title", "test desc", "test date"))
+    def translate(json: JObject): Xor[TranslationError, BlobBundle] = {
+      val photoBlob = PhotoBlob(None, "test title", "test desc", "test date")
+      val bundle = BlobBundle((BundleKey.Self, photoBlob))
+      Xor.right(bundle)
     }
   }
   class NoopLoader(val path: String, implicit val translator: NoopTranslator.type = NoopTranslator) extends DirectoryWalkerLoader[NoopTranslator.type]
