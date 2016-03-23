@@ -27,11 +27,12 @@ object TateTranslatorSpec extends Specification with XorMatchers {
 
       val translated = TateTranslator.translate(json)
 
-      translated must beRightXor { blob: PhotoBlob =>
-        blob.title must_== expected.title
+      def matchBundleElement(expected: (BundleKey, MetadataBlob)) = expected.zip(===, ===)
+
+      translated must beRightXor { blobBundle: BlobBundle =>
+        blobBundle must contain(matchBundleElement(BundleKey.Self, PhotoBlob(None, expected.title, "", "")))
       }
     }
   }
 }
 
-// TODO: MoMA translator spec here too?
