@@ -68,9 +68,11 @@ object Ingress {
                    raw: Option[RawMetadataBlob] = None):
   Xor[GraphError, Canonical] = {
     // extract author & add if they don't exist in the graph already
+    /*
     val author = photo.author.map { p =>
       addPerson(graph, p, raw)
     }
+    */
 
     // check to see if a duplicate entry exists
     val photoV = Traversals.photoBlobsWithExactMatch(graph.V, photo)
@@ -78,12 +80,13 @@ object Ingress {
 
     raw.foreach(attachRawMetadata(photoV, _))
 
-    for {
-      _ <- author
-        .map(x => x.flatMap(defineAuthorship(photoV, _)))
-        .getOrElse(Xor.right({}))
-    } yield {
+//    for {
+//      _ <- author
+//        .map(x => x.flatMap(defineAuthorship(photoV, _)))
+//        .getOrElse(Xor.right({}))
+//    } yield {
       // return existing canonical for photo vertex, or create one
+    Xor.right(
       graph.V(photoV.id)
         .findCanonicalXor
         .getOrElse {
@@ -91,7 +94,8 @@ object Ingress {
           canonicalVertex --- DescribedBy --> photoV
           canonicalVertex.toCC[Canonical]
         }
-    }
+    )
+//    }
   }
 
 
@@ -105,12 +109,12 @@ object Ingress {
         parentVertex --- ModifiedBy --> childVertex
 
         // TODO: don't swallow errors
-        for {
-          author         <- photo.author.flatMap(addPerson(graph, _).toOption)
-          existingAuthor <- Traversals.getAuthor(childVertex.lift)
-            .toCC[Canonical].headOption
-          if author.canonicalID != existingAuthor.canonicalID
-        } yield defineAuthorship(childVertex, author)
+//        for {
+//          author         <- photo.author.flatMap(addPerson(graph, _).toOption)
+//          existingAuthor <- Traversals.getAuthor(childVertex.lift)
+//            .toCC[Canonical].headOption
+//          if author.canonicalID != existingAuthor.canonicalID
+//        } yield defineAuthorship(childVertex, author)
 
         childVertex.lift.findCanonicalXor
           .map(Xor.right)

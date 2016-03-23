@@ -112,11 +112,7 @@ object Types {
   }
 
   @label("PhotoBlob")
-  case class PhotoBlob(@id id: Option[ElementID],
-                       title: String,
-                       description: String,
-                       date: String,
-                       author: Option[Person]) extends MetadataBlob {
+  case class PhotoBlob(@id id: Option[ElementID], title: String, description: String, date: String) extends MetadataBlob {
     def getID(): Option[ElementID] = id
   }
 

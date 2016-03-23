@@ -28,13 +28,7 @@ object MomaTranslator extends Translator {
                            Medium: String,
                            Date: String,
                            Artist: String) {
-    def asPhotoBlob: PhotoBlob = PhotoBlob(
-      id = None,
-      title = Title,
-      description = Medium,
-      date = Date,
-      author = Some(Person(id = None, Artist))
-    )
+    def asPhotoBlob: PhotoBlob = PhotoBlob(id = None, title = Title, description = Medium, date = Date)
   }
 
   /** Casts a JValue to a PhotoBlob using `extract` and `asPhotoBlob`

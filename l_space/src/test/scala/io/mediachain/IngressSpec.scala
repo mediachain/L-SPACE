@@ -20,7 +20,7 @@ object IngressSpec extends BaseSpec
       """
 
   def ingestsPhoto = { graph: OrientGraph =>
-    val photoBlob = PhotoBlob(None, "A Starry Night", "shiny!", "1/2/2013", None)
+    val photoBlob = PhotoBlob(None, "A Starry Night", "shiny!", "1/2/2013")
 
     val canonical = Ingress.addPhotoBlob(graph, photoBlob)
     canonical must beRightXor
@@ -29,10 +29,8 @@ object IngressSpec extends BaseSpec
 
   def findsExistingAuthor = { graph: OrientGraph =>
     val photoBlobs = List(
-      PhotoBlob(None, "A Starry Night", "shiny!", "1/2/2013",
-        Some(Person(None, "Fooman Bars"))),
-      PhotoBlob(None, "A Starrier Night", "shiny!", "1/2/2013",
-        Some(Person(None, "Fooman Bars")))
+      PhotoBlob(None, "A Starry Night", "shiny!", "1/2/2013"),
+      PhotoBlob(None, "A Starrier Night", "shiny!", "1/2/2013")
     )
 
     photoBlobs.foreach(Ingress.addPhotoBlob(graph, _))
@@ -65,11 +63,7 @@ object IngressSpec extends BaseSpec
           "author": "Leonardo da Vinci"}""".stripMargin
     val raw = RawMetadataBlob(None, rawString)
     val leo = Person(None, "Leonardo da Vinci")
-    val blob = PhotoBlob(None,
-      "The Last Supper",
-      "Why is everyone sitting on the same side of the table?",
-      "c. 1495",
-      Some(leo))
+    val blob = PhotoBlob(None, "The Last Supper", "Why is everyone sitting on the same side of the table?", "c. 1495")
 
     // First add without raw metadata
     Ingress.addPhotoBlob(graph, blob)

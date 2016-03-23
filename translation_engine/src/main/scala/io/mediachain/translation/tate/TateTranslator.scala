@@ -31,8 +31,7 @@ object TateTranslator extends Translator {
       PhotoBlob(None,
         a.title,
         a.medium.getOrElse(""),
-        a.dateText.getOrElse(""),
-        artists.headOption)
+        a.dateText.getOrElse(""))
     }
 
     Xor.fromOption(result, InvalidFormat())

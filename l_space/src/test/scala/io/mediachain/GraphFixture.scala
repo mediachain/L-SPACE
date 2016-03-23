@@ -55,7 +55,7 @@ object GraphFixture {
       val desc = food(Random.nextInt(stuff.length))
       // FIXME: randomize date
       val date = "2016-02-22T19:04:13+00:00"
-      PhotoBlob(None, title, desc, date, None)
+      PhotoBlob(None, title, desc, date)
     }
 
     def getModifiedPhotoBlob: PhotoBlob = {

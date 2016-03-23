@@ -28,8 +28,7 @@ object TateTranslatorSpec extends Specification with XorMatchers {
       val translated = TateTranslator.translate(json)
 
       translated must beRightXor { blob: PhotoBlob =>
-        (blob.title must_== expected.title) and
-          (blob.author.exists(_.name must_== expected.artistName))
+        blob.title must_== expected.title
       }
     }
   }
