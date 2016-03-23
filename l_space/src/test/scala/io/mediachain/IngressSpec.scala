@@ -105,8 +105,7 @@ object IngressSpec extends BaseSpec
   def modifiesExistingPhotoBlob = { graph: OrientGraph =>
     val objs = GraphFixture.Util.setupTree(graph)
     val currentHead = objs.modifiedPhotoBlob
-    val newPhoto = currentHead.copy(id = None,
-      title = GraphFixture.Util.mutate(currentHead.title))
+    val newPhoto = currentHead.copy(id = None, title = GraphFixture.Util.mutate(currentHead.title))
 
     val currentHeadV = currentHead.vertex(graph)
         .getOrElse(throw new IllegalStateException(

@@ -92,8 +92,7 @@ object QuerySpec extends BaseSpec
   }
 
   def doesNotFindPhoto = { context: GraphFixture.Context =>
-   val queryBlob = context.objects.photoBlob.copy(
-      description = GraphFixture.Util.mutate(context.objects.photoBlob.description))
+   val queryBlob = context.objects.photoBlob.copy(description = GraphFixture.Util.mutate(context.objects.photoBlob.description))
 
     val queriedPhoto = Query.findPhotoBlob(context.graph, queryBlob)
 

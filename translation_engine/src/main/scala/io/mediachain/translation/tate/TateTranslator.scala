@@ -18,7 +18,7 @@ object TateTranslator extends Translator {
                              dateText: Option[String],
                              contributors: List[Contributor])
 
-  def translate(json: JObject): Xor[TranslationError, PhotoBlob] = {
+  def translate(json: JObject): Xor[TranslationError, BlobBundle] = {
     implicit val formats = org.json4s.DefaultFormats
     val artwork = json.extractOpt[Artwork]
     val result = artwork.map { a =>
@@ -26,12 +26,13 @@ object TateTranslator extends Translator {
       val artists = for {
         c <- a.contributors
         if c.role == "artist"
-      } yield Person(None, c.fc)
+      } yield (BundleKey.Author, Person(None, c.fc))
 
-      PhotoBlob(None,
+      val photoBlob = PhotoBlob(None,
         a.title,
         a.medium.getOrElse(""),
         a.dateText.getOrElse(""))
+      BlobBundle((BundleKey.Self, photoBlob)) ++ artists
     }
 
     Xor.fromOption(result, InvalidFormat())

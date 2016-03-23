@@ -123,5 +123,14 @@ object Types {
       val date = Key[String]("date")
     }
   }
+
+  sealed abstract class BundleKey
+  object BundleKey {
+    case object Self extends BundleKey
+    case object Author extends BundleKey
+  }
+
+  type BlobBundle = List[(BundleKey, MetadataBlob)]
+  def BlobBundle(xs: (BundleKey, MetadataBlob)*) = List(xs: _*)
 }
 

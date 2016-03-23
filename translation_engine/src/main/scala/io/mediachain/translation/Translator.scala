@@ -4,7 +4,7 @@ import java.io.File
 
 import scala.io.Source
 import cats.data.Xor
-import io.mediachain.Types.{Canonical, PhotoBlob, RawMetadataBlob}
+import io.mediachain.Types.{BlobBundle, Canonical, PhotoBlob, RawMetadataBlob}
 import org.apache.tinkerpop.gremlin.orientdb.{OrientGraph, OrientGraphFactory}
 import org.json4s._
 import io.mediachain.core.{Error, TranslationError}
@@ -21,7 +21,7 @@ object `package` extends Implicit
 trait Translator {
   val name: String
   val version: Int
-  def translate(source: JObject): Xor[TranslationError, PhotoBlob]
+  def translate(source: JObject): Xor[TranslationError, BlobBundle]
 }
 
 trait FSLoader[T <: Translator] {
@@ -30,7 +30,7 @@ trait FSLoader[T <: Translator] {
   val pairI: Iterator[Xor[TranslationError, (JObject, String)]]
   val path: String
 
-  def loadPhotoBlobs: Iterator[Xor[TranslationError,(PhotoBlob, RawMetadataBlob)]] = {
+  def loadPhotoBlobs: Iterator[Xor[TranslationError,(BlobBundle, RawMetadataBlob)]] = {
     pairI.map { pairXor =>
       pairXor.flatMap { case (json, raw) =>
         translator.translate(json).map {
@@ -100,18 +100,18 @@ object TranslatorDispatcher {
       case "tate" => new tate.TateLoader(path)
     }
 
-    val blobI: Iterator[Xor[TranslationError, (PhotoBlob, RawMetadataBlob)]] = translator.loadPhotoBlobs
+    val blobI: Iterator[Xor[TranslationError, (BlobBundle, RawMetadataBlob)]] = translator.loadPhotoBlobs
     val graph = getGraph
 
-    val results: Iterator[Xor[Error, Canonical]] = blobI.map { pairXor =>
-      pairXor.flatMap { case (blob: PhotoBlob, raw: RawMetadataBlob) =>
-          Ingress.addPhotoBlob(graph, blob, Some(raw))
-      }
-    }
-    val errors: Iterator[Error] = results.collect { case Xor.Left(err) => err }
-    val canonicals: Iterator[Canonical] = results.collect { case Xor.Right(c) => c }
-
-    println(s"Import finished: ${canonicals.length} canonicals imported ${errors} errors reported (see below)")
-    println(errors)
+//    val results: Iterator[Xor[Error, Canonical]] = blobI.map { pairXor =>
+//      pairXor.flatMap { case (blob: PhotoBlob, raw: RawMetadataBlob) =>
+//          Ingress.addPhotoBlob(graph, blob, Some(raw))
+//      }
+//    }
+//    val errors: Iterator[Error] = results.collect { case Xor.Left(err) => err }
+//    val canonicals: Iterator[Canonical] = results.collect { case Xor.Right(c) => c }
+//
+//    println(s"Import finished: ${canonicals.length} canonicals imported ${errors} errors reported (see below)")
+//    println(errors)
   }
 }

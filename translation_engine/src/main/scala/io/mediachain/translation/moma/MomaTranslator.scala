@@ -4,12 +4,10 @@ import cats.data.Xor
 import io.mediachain.core.TranslationError
 import io.mediachain.core.TranslationError.ParsingFailed
 import org.json4s._
-
-import io.mediachain.Types.{Person, PhotoBlob}
-
+import io.mediachain.Types.{BlobBundle, BundleKey, Person, PhotoBlob}
 import io.mediachain.translation.{FlatFileLoader, Translator}
 
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 object MomaTranslator extends Translator {
   val name = "MomaCollectionTranslator"
@@ -36,10 +34,10 @@ object MomaTranslator extends Translator {
     * @param json The JValue representing a work
     * @return A `PhotoBlob` extracted from the JValue
     */
-  def translate(json: JObject): Xor[TranslationError, PhotoBlob] = {
+  def translate(json: JObject): Xor[TranslationError, BlobBundle] = {
     implicit val formats = DefaultFormats
     Try(json.extract[MomaPhotoBlob].asPhotoBlob) match {
-      case Success(blob) => Xor.right(blob)
+      case Success(photoBlob) => Xor.right(BlobBundle((BundleKey.Self, photoBlob)))
       case Failure(exn)  => Xor.left(ParsingFailed(exn))
     }
   }
