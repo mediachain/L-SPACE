@@ -62,11 +62,11 @@ object GraphJsonWriter {
     }.toMap
 
     val edges: List[D3Link] = graph.E.map { e: Edge =>
-      val inVertexId = e.inVertex().id.toString
-      val outVertexId = e.outVertex().id.toString
+      val sourceId = e.outVertex().id.toString
+      val targetId = e.inVertex().id.toString
 
       D3Link(e.label, e.id.toString, e.valueMap.filterKeys(noGremlinScalaProp),
-        inVertexId, outVertexId)
+        sourceId, targetId)
     }.toList
 
     D3Graph(nodes, edges)
@@ -78,17 +78,25 @@ object GraphJsonWriter {
     JsonWrite(d3Graph)(formats)
   }
 
-  case class CytoElement(classes: String, id: String, properties: Map[String, Any], group: String)
+  case class CytoElement( group: String, classes: String, data: Map[String, Any])
 
   object CytoElement {
-    def fromD3(d3Graph: D3Graph): Map[String, CytoElement] = {
+    def fromD3(d3Graph: D3Graph): List[CytoElement] = {
       val elements =
         d3Graph.nodes.values.map(n =>
-          CytoElement(n.label, n.id, n.properties, "nodes")) ++
+          CytoElement("nodes", n.label, n.properties +
+            ("id" -> n.id) +
+            ("label" -> n.label)
+          )) ++
         d3Graph.links.map(l =>
-          CytoElement(l.label, l.id, l.properties, "edges"))
+          CytoElement("edges", l.label,
+            l.properties +
+              ("id" -> l.id) +
+              ("label" -> l.label) +
+              ("source" -> l.source) +
+              ("target" -> l.target)))
 
-      elements.map(e => e.id -> e).toMap
+      elements.toList
     }
   }
 

@@ -5,6 +5,7 @@ var BUILD_DIR = path.resolve(__dirname, 'src/public');
 var APP_DIR = path.resolve(__dirname, 'src/app');
 
 var config = {
+  devtool: 'source-map',
   entry: APP_DIR + '/index.js',
   output: {
     path: BUILD_DIR,
@@ -16,6 +17,7 @@ var config = {
       {
         test: /\.jsx?/,
         include: APP_DIR,
+        exclued: /node_modules/,
         loader: 'babel'
       }
     ]
