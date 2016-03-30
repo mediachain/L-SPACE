@@ -78,14 +78,27 @@ object GraphJsonWriter {
     JsonWrite(d3Graph)(formats)
   }
 
+  case class CytoElement(classes: String, id: String, properties: Map[String, Any], group: String)
+
+  object CytoElement {
+    def fromD3(d3Graph: D3Graph): Map[String, CytoElement] = {
+      val elements =
+        d3Graph.nodes.values.map(n =>
+          CytoElement(n.label, n.id, n.properties, "nodes")) ++
+        d3Graph.links.map(l =>
+          CytoElement(l.label, l.id, l.properties, "edges"))
+
+      elements.map(e => e.id -> e).toMap
+    }
+  }
+
   def graphToCytoscapeJSONString(graph: Graph): String = {
     val d3Graph = makeD3Graph(graph)
+    val cytoGraph = CytoElement.fromD3(d3Graph)
     val formats = Serialization.formats(NoTypeHints) +
-      new EmbeddedMapSerializer +
-      FieldSerializer[D3Node](renameTo("label", "classes")) +
-      FieldSerializer[D3Link](renameTo("label", "classes"))
+      new EmbeddedMapSerializer
 
-    JsonWrite(d3Graph)(formats)
+    JsonWrite(cytoGraph)(formats)
   }
 
 

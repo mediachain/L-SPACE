@@ -1,4 +1,8 @@
 import cytoscape from 'cytoscape';
+import cycola from 'cytoscape-cola';
+import cola from 'cola';
+
+cycola(cytoscape, cola);
 
 const StaticOpts = {
   layout: { name: 'cola' },
@@ -37,7 +41,7 @@ const StaticOpts = {
 function initCytoscape(containerId, elements, style) = {
   const opts = {
     ...StaticOpts,
-    container: containerId,
+    container: document.getElementById(containerId),
     elements: elements,
     style: style
   };
