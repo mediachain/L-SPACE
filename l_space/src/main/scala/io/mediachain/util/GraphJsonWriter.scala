@@ -8,6 +8,7 @@ import gremlin.scala._
 import org.apache.tinkerpop.gremlin.structure.Direction
 import org.apache.tinkerpop.gremlin.structure.io.IoCore
 import org.json4s._
+import org.json4s.FieldSerializer._
 import org.json4s.jackson.{Serialization, JsonMethods => Json}
 import org.json4s.jackson.Serialization.{write => JsonWrite}
 
@@ -15,17 +16,22 @@ import scala.collection.JavaConversions._
 
 object GraphJsonWriter {
 
-  case class D3Node(label: String, id: String, properties: Map[String, Any])
-  case class D3Link(label: String, id: String, properties: Map[String, Any],
-    source: Int, target: Int, sourceId: String, targetId: String)
+  case class D3Node(label: String, id: String, properties: Map[String, Any]) {
+    val group = "nodes"
+  }
 
-  case class D3Graph(nodes: List[D3Node], links: List[D3Link])
+  case class D3Link(label: String, id: String, properties: Map[String, Any],
+    source: String, target: String) {
+    val group = "edges"
+  }
+
+  case class D3Graph(nodes: Map[String, D3Node], links: List[D3Link])
 
   class EmbeddedMapSerializer extends
-    CustomSerializer[util.LinkedHashMap[_, _]](format => (
+    CustomSerializer[util.Map[_, _]](format => (
     {
       case JObject(fields) => {
-        val m = new util.LinkedHashMap[String, String]()
+        val m = new util.HashMap[String, String]()
         fields.foreach[Unit] { field =>
           val (key: String, jValue: org.json4s.JsonAST.JValue) = field
           m.put(key, Json.compact(jValue))
@@ -34,7 +40,7 @@ object GraphJsonWriter {
       }
     },
     {
-      case m: util.LinkedHashMap[_, _] =>
+      case m: util.Map[_, _] =>
         JObject(
           m.entrySet().map { entry =>
             val key = entry.getKey.toString
@@ -45,27 +51,40 @@ object GraphJsonWriter {
     }
     ))
 
-  def graphToD3JSONString(graph: Graph): String = {
+  def makeD3Graph(graph: Graph): D3Graph = {
     val noGremlinScalaProp = { name: String =>
       name != "__gs"
     }
 
-    val nodes: List[D3Node] = graph.V.map { v: Vertex =>
-      D3Node(v.label, v.id.toString, v.valueMap.filterKeys(noGremlinScalaProp))
-    }.toList
+    val nodes: Map[String, D3Node] = graph.V.map { v: Vertex =>
+      val id = v.id.toString
+      id -> D3Node(v.label, id, v.valueMap.filterKeys(noGremlinScalaProp))
+    }.toMap
 
     val edges: List[D3Link] = graph.E.map { e: Edge =>
       val inVertexId = e.inVertex().id.toString
       val outVertexId = e.outVertex().id.toString
-      val inVertexIndex = nodes.indexWhere(_.id == inVertexId)
-      val outVertexIndex = nodes.indexWhere(_.id == outVertexId)
 
       D3Link(e.label, e.id.toString, e.valueMap.filterKeys(noGremlinScalaProp),
-        inVertexIndex, outVertexIndex, inVertexId, outVertexId)
+        inVertexId, outVertexId)
     }.toList
 
-    val d3Graph = D3Graph(nodes, edges)
+    D3Graph(nodes, edges)
+  }
+
+  def graphToD3JSONString(graph: Graph): String = {
+    val d3Graph = makeD3Graph(graph)
     val formats = Serialization.formats(NoTypeHints) + new EmbeddedMapSerializer
+    JsonWrite(d3Graph)(formats)
+  }
+
+  def graphToCytoscapeJSONString(graph: Graph): String = {
+    val d3Graph = makeD3Graph(graph)
+    val formats = Serialization.formats(NoTypeHints) +
+      new EmbeddedMapSerializer +
+      FieldSerializer[D3Node](renameTo("label", "classes")) +
+      FieldSerializer[D3Link](renameTo("label", "classes"))
+
     JsonWrite(d3Graph)(formats)
   }
 
@@ -89,6 +108,9 @@ object GraphJsonWriter {
     def printD3JsonString(): Unit = {
       println(toD3JsonString)
     }
+
+    def toCytoscapeJsonString: String =
+      graphToCytoscapeJSONString(graph)
 
   }
 
