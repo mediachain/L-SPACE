@@ -92,6 +92,12 @@ object GraphJsonWriter {
     def toCytoscapeJsonString: String =
       graphToCytoscapeJsonString(graph)
 
+    def writeCytoscapeJsonToFile(path: String): Unit =
+      try {
+        new PrintWriter(path) { write(toCytoscapeJsonString); close() }
+      } catch {
+        case e: Throwable => println(s"Error writing graph to $path: $e")
+      }
   }
 
   implicit class VertexIOImplicits(vertex: Vertex) {
