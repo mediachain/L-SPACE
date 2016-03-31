@@ -32,29 +32,6 @@ object GraphJsonWriter {
       }
       ))
 
-  case class D3Node(label: String, id: String, properties: Map[String, Any])
-
-  case class D3Link(label: String, id: String, properties: Map[String, Any],
-    source: String, target: String)
-
-  case class D3Graph(nodes: Map[String, D3Node], links: List[D3Link])
-
-  def makeD3Graph(graph: Graph): D3Graph = {
-    val nodes: Map[String, D3Node] = graph.V.map(_.asD3Node)
-      .map(n => n.id -> n)
-      .toMap
-
-    val edges: List[D3Link] = graph.E.map(_.asD3Link).toList
-
-    D3Graph(nodes, edges)
-  }
-
-  def graphToD3JsonString(graph: Graph): String = {
-    val d3Graph = makeD3Graph(graph)
-    val formats = Serialization.formats(NoTypeHints) + new EmbeddedMapSerializer
-    JsonWrite(d3Graph)(formats)
-  }
-
   case class CytoElement( group: String, classes: String, data: Map[String, Any])
 
   def graphToCytoscapeJsonString(graph: Graph): String = {
@@ -80,13 +57,6 @@ object GraphJsonWriter {
 
     def printGraphson(): Unit = {
       writer.writeGraph(System.out, graph)
-    }
-
-    def toD3JsonString: String =
-      graphToD3JsonString(graph)
-
-    def printD3JsonString(): Unit = {
-      println(toD3JsonString)
     }
 
     def toCytoscapeJsonString: String =
@@ -119,11 +89,6 @@ object GraphJsonWriter {
         ("label" -> vertex.label) + ("id" -> id)
       CytoElement("nodes", vertex.label, data)
     }
-
-    def asD3Node: D3Node = {
-      val id = vertex.id.toString
-      D3Node(vertex.label, id, vertex.valueMap.filterKeys(_ != "__gs"))
-    }
   }
 
   implicit class EdgeIOImplicits(edge: Edge) {
@@ -147,15 +112,6 @@ object GraphJsonWriter {
         ("label" -> edge.label) + ("id" -> id) +
         ("source" -> sourceId) + ("target" -> targetId)
       CytoElement("edges", edge.label, data)
-    }
-
-    def asD3Link: D3Link = {
-      val sourceId = edge.outVertex().id.toString
-      val targetId = edge.inVertex().id.toString
-
-      D3Link(edge.label, edge.id.toString,
-        edge.valueMap.filterKeys(_ != "__gs"),
-        sourceId, targetId)
     }
   }
 
