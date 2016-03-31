@@ -18,7 +18,7 @@ object GraphJsonWriter {
   class EmbeddedMapSerializer extends
     CustomSerializer[util.Map[_, _]](format => (
       {
-        case jObject@JObject(_) => jObject.values.asJava
+        case jObject: JObject => jObject.values.asJava
       },
       {
         case m: util.Map[_, _] =>
