@@ -33,7 +33,15 @@ message Node {
 }
 
 message Edge {
-    string label = 1;
+    enum label {
+       UnknownEdge = 0;
+       DescribedBy = 1;
+       ModifiedBy = 2;
+       AuthoredBy = 3;
+       TranslatedFrom = 4;
+       SupersededBy = 5;
+    }
+
     string inVertexContentHash = 2;
     string outVertexContentHash = 3;
     // TODO: edge properties
