@@ -24,7 +24,7 @@ test:
   override:
     - case $(($CIRCLE_NODE_INDEX % 2)) in 0) PROJECT="l_space";; 1) PROJECT="translation_engine";; esac:
         parallel: true
-    - sbt -Dspecs2.junit.outdir=$CIRCLE_TEST_REPORTS/junit "project $PROJECT" coverage "test-only -- junitxml console":
+    - sbt -Dspecs2.junit.outdir=$CIRCLE_TEST_REPORTS/junit "project l_space" coverage "test-only -- junitxml console":
         parallel: true
   post:
     - sbt 'coverageReport'
