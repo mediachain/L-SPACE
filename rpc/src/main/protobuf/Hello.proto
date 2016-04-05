@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package io.mediachain.rpc;
+package rpc;
+option java_package = "io.mediachain.rpc";
+
 
 // The greeting service definition.
 service Greeter {

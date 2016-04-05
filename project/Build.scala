@@ -48,6 +48,7 @@ object LSpaceBuild extends Build{
 
   lazy val rpc = project
     .settings(scalaSettings: _*)
+    .dependsOn(core, l_space)
 
   lazy val core = project
     .settings(scalaSettings: _*)

@@ -1,0 +1,18 @@
+syntax = "proto3";
+package rpc;
+option java_package = "io.mediachain.rpc";
+
+import "Types.proto";
+
+message ListCanonicalsRequest {
+    uint64 limit = 1;
+}
+
+message CanonicalList {
+    repeated Canonical canonicals = 1;
+}
+
+service LSpaceService {
+    rpc ListCanonicals(ListCanonicalsRequest) returns (CanonicalList);
+    rpc SubtreeForCanonical(Canonical) returns (Graph);
+}
