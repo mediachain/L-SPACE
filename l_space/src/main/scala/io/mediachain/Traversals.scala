@@ -1,5 +1,7 @@
 package io.mediachain
 
+import java.util.UUID
+
 object Traversals {
   import gremlin.scala._
   import Types._
@@ -11,6 +13,9 @@ object Traversals {
     q.hasLabel[Canonical]
       .has(Canonical.Keys.canonicalID, canonicalID)
   }
+
+  def canonicalsWithUUID(q: GremlinScala[Vertex, _], canonicalID: UUID): GremlinScala[Vertex, _] =
+    canonicalsWithID(q, canonicalID.toString.toLowerCase)
 
   def personBlobsWithExactMatch(q: GremlinScala[Vertex, _], p: Person): GremlinScala[Vertex, _] = {
     q.hasLabel[Person]
