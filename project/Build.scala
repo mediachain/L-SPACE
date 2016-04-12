@@ -48,6 +48,10 @@ object LSpaceBuild extends Build{
     .dependsOn(l_space % "test->test")
     .dependsOn(core)
 
+  lazy val rpc = project
+    .settings(scalaSettings: _*)
+    .dependsOn(core, l_space)
+
   lazy val core = project
     .settings(scalaSettings: _*)
 
@@ -61,7 +65,7 @@ object LSpaceBuild extends Build{
 
   lazy val root = (project in file("."))
     .aggregate(core, l_space,
-      translation_engine)
+      translation_engine, rpc)
     .dependsOn(core, l_space,
-      translation_engine)
+      translation_engine, rpc)
 }

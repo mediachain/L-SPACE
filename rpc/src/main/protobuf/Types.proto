@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package rpc;
+option java_package = "io.mediachain.rpc";
+
+
+message Canonical {
+    string canonicalID = 1;
+}
+
+message ImageBlob {
+    string title = 1;
+    string description = 2;
+    string date = 3;
+}
+
+message Person {
+    string name = 1;
+}
+
+message RawMetadataBlob {
+    string blob = 1;
+}
+
+message Node {
+    string contentHash = 1;
+    oneof content {
+        Canonical canonical = 2;
+        ImageBlob image = 3;
+        Person person = 4;
+        RawMetadataBlob rawMetadata = 5;
+    }
+}
+
+message Edge {
+    enum label {
+       UnknownEdge = 0;
+       DescribedBy = 1;
+       ModifiedBy = 2;
+       AuthoredBy = 3;
+       TranslatedFrom = 4;
+       SupersededBy = 5;
+    }
+
+    string inVertexContentHash = 2;
+    string outVertexContentHash = 3;
+    // TODO: edge properties
+}
+
+message Graph {
+    repeated Node nodes = 1;
+    repeated Edge edges = 2;
+}
