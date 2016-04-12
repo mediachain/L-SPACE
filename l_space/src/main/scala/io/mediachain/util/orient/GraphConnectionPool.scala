@@ -1,9 +1,9 @@
 package io.mediachain.util.orient
 
 import gremlin.scala.Graph
-import org.apache.tinkerpop.gremlin.orientdb.{OrientGraph, OrientGraphFactory}
+import org.apache.tinkerpop.gremlin.orientdb.OrientGraphFactory
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{ExecutionContext, Future}
 
 trait GraphConnectionPool {
   def getGraph: Future[Graph]
@@ -15,11 +15,11 @@ class OrientGraphPool(val factory: OrientGraphFactory)
 
   /**
     * Obtains a new graph instance from the `OrientGraphFactory`'s connection
-    * pool.  Returns a `Future[Graph]`, since acquiring the connection may
-    * block if the pool is at max capacity.
-    * @return a `Future` that resolves to an open `Graph` connection.
+    * pool.
+    * @return a `Future` that resolves to an open `Graph` connection.  Will
+    *         fail if the pool is at max capacity.
     */
   def getGraph: Future[Graph] = Future {
-    blocking(factory.getTx())
+    factory.getTx()
   }
 }
