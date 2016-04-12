@@ -18,6 +18,9 @@ project/plugins/project/
 .idea/
 
 
+# Node.js
+node_modules/
+
 # mediachain specific
 private
 .env

@@ -3,70 +3,46 @@ package io.mediachain.util
 import java.io._
 import java.util
 
-import com.orientechnologies.orient.core.db.record.OTrackedMap
 import gremlin.scala._
 import org.apache.tinkerpop.gremlin.structure.Direction
 import org.apache.tinkerpop.gremlin.structure.io.IoCore
 import org.json4s._
 import org.json4s.jackson.{Serialization, JsonMethods => Json}
 import org.json4s.jackson.Serialization.{write => JsonWrite}
+import scala.collection.JavaConverters._
 
 import scala.collection.JavaConversions._
 
 object GraphJsonWriter {
 
-  case class D3Node(label: String, id: String, properties: Map[String, Any])
-  case class D3Link(label: String, id: String, properties: Map[String, Any],
-    source: Int, target: Int, sourceId: String, targetId: String)
-
-  case class D3Graph(nodes: List[D3Node], links: List[D3Link])
-
   class EmbeddedMapSerializer extends
-    CustomSerializer[util.LinkedHashMap[_, _]](format => (
-    {
-      case JObject(fields) => {
-        val m = new util.LinkedHashMap[String, String]()
-        fields.foreach[Unit] { field =>
-          val (key: String, jValue: org.json4s.JsonAST.JValue) = field
-          m.put(key, Json.compact(jValue))
-        }
-        m
+    CustomSerializer[util.Map[_, _]](format => (
+      {
+        case jObject: JObject => jObject.values.asJava
+      },
+      {
+        case m: util.Map[_, _] =>
+          JObject(
+            m.entrySet().map { entry =>
+              val key = entry.getKey.toString
+              val stringVal = entry.getValue.toString
+              JField(key, JString(stringVal))
+            }.toList
+          )
       }
-    },
-    {
-      case m: util.LinkedHashMap[_, _] =>
-        JObject(
-          m.entrySet().map { entry =>
-            val key = entry.getKey.toString
-            val stringVal = entry.getValue.toString
-            JField(key, JString(stringVal))
-          }.toList
-        )
-    }
-    ))
+      ))
 
-  def graphToD3JSONString(graph: Graph): String = {
-    val noGremlinScalaProp = { name: String =>
-      name != "__gs"
-    }
+  case class CytoElement( group: String, classes: String, data: Map[String, Any])
 
-    val nodes: List[D3Node] = graph.V.map { v: Vertex =>
-      D3Node(v.label, v.id.toString, v.valueMap.filterKeys(noGremlinScalaProp))
-    }.toList
+  def graphToCytoscapeJsonString(graph: Graph): String = {
+    val elements: List[CytoElement] =
+      graph.V.map(_.asCytoscapeElement).toList ++
+        graph.E.map(_.asCytoscapeElement).toList
 
-    val edges: List[D3Link] = graph.E.map { e: Edge =>
-      val inVertexId = e.inVertex().id.toString
-      val outVertexId = e.outVertex().id.toString
-      val inVertexIndex = nodes.indexWhere(_.id == inVertexId)
-      val outVertexIndex = nodes.indexWhere(_.id == outVertexId)
+    val formats = Serialization.formats(NoTypeHints) +
+      new EmbeddedMapSerializer
 
-      D3Link(e.label, e.id.toString, e.valueMap.filterKeys(noGremlinScalaProp),
-        inVertexIndex, outVertexIndex, inVertexId, outVertexId)
-    }.toList
-
-    val d3Graph = D3Graph(nodes, edges)
-    val formats = Serialization.formats(NoTypeHints) + new EmbeddedMapSerializer
-    JsonWrite(d3Graph)(formats)
+    JsonWrite(elements)(formats)
   }
 
 
@@ -83,13 +59,15 @@ object GraphJsonWriter {
       writer.writeGraph(System.out, graph)
     }
 
-    def toD3JsonString: String =
-      graphToD3JSONString(graph)
+    def toCytoscapeJsonString: String =
+      graphToCytoscapeJsonString(graph)
 
-    def printD3JsonString(): Unit = {
-      println(toD3JsonString)
-    }
-
+    def writeCytoscapeJsonToFile(path: String): Unit =
+      try {
+        new PrintWriter(path) { write(toCytoscapeJsonString); close() }
+      } catch {
+        case e: Throwable => println(s"Error writing graph to $path: $e")
+      }
   }
 
   implicit class VertexIOImplicits(vertex: Vertex) {
@@ -104,6 +82,13 @@ object GraphJsonWriter {
     def printGraphson(edgeDirection: Direction = Direction.BOTH): Unit = {
       writer.writeVertex(System.out, vertex, edgeDirection)
     }
+
+    def asCytoscapeElement: CytoElement = {
+      val id = vertex.id.toString
+      val data = vertex.valueMap[Any].filterKeys(_ != "__gs") +
+        ("label" -> vertex.label) + ("id" -> id)
+      CytoElement("nodes", vertex.label, data)
+    }
   }
 
   implicit class EdgeIOImplicits(edge: Edge) {
@@ -117,6 +102,16 @@ object GraphJsonWriter {
 
     def printGraphson(): Unit = {
       writer.writeEdge(System.out, edge)
+    }
+
+    def asCytoscapeElement: CytoElement = {
+      val id = edge.id.toString
+      val sourceId = edge.outVertex.id.toString
+      val targetId = edge.inVertex.id.toString
+      val data = edge.valueMap[Any].filterKeys(_ != "__gs") +
+        ("label" -> edge.label) + ("id" -> id) +
+        ("source" -> sourceId) + ("target" -> targetId)
+      CytoElement("edges", edge.label, data)
     }
   }
 
