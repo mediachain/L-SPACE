@@ -7,18 +7,22 @@ import org.specs2.specification.BeforeAll
 import org.specs2.matcher.JsonMatchers
 import spray.testkit.Specs2RouteTest
 import gremlin.scala._
-import io.mediachain.util.orient.MigrationHelper
+import io.mediachain.util.orient.{GraphConnectionPool, MigrationHelper, OrientGraphPool}
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 object LSpaceServiceSpec extends BaseSpec
   with Specs2RouteTest with LSpaceService with BeforeAll with JsonMatchers {
   def actorRefFactory = system
+  implicit val executionContext = system.dispatcher
 
-  val graphFactory = MigrationHelper.newInMemoryGraphFactory()
+  val graphPool = new OrientGraphPool(MigrationHelper.newInMemoryGraphFactory())
 
   val canonicalId = UUID.randomUUID.toString
 
   def beforeAll: Unit = {
-    val graph = graphFactory.getTx()
+    val graph = Await.result(graphPool.getGraph, 1 second)
     graph + Canonical(None, canonicalId)
   }
 

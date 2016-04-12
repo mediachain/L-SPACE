@@ -5,7 +5,7 @@ import akka.io.IO
 import akka.pattern.ask
 import akka.util.Timeout
 import io.mediachain.util.Env
-import io.mediachain.util.orient.MigrationHelper
+import io.mediachain.util.orient.{MigrationHelper, OrientGraphPool}
 import spray.can.Http
 
 import scala.concurrent.duration._
@@ -13,6 +13,7 @@ import scala.util.{Failure, Success}
 
 object Boot extends App {
   implicit val system = ActorSystem("l-space-api")
+  implicit val executionContext = system.dispatcher
 
   lazy val graphFactory = MigrationHelper.getMigratedGraphFactory()
     match {
@@ -21,8 +22,10 @@ object Boot extends App {
       case Success(factory) => factory
     }
 
+  lazy val graphPool = new OrientGraphPool(graphFactory)
+
   lazy val service = system.actorOf(
-    LSpaceServiceActor.props(graphFactory), "hello-service")
+    LSpaceServiceActor.props(graphPool), "hello-service")
 
   implicit val timeout = Timeout(5.seconds)
 
