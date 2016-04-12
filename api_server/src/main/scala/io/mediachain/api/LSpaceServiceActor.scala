@@ -44,9 +44,8 @@ trait LSpaceService extends HttpService {
   /**
     * Helper to obtain a graph connection and perform some operation `f`
     * that returns a result of type `T`.  Returns a `Future[T]` that will
-    * fail if the result of `f` is an instance of `Xor.Left`, or if `f` throws
-    * an exception.  Otherwise the result of `f` will be returned as the
-    * Future's success value.
+    * fail if `f` throws an exception. Otherwise the result of `f` will be
+    * returned as the Future's success value.
     *
     * The `Graph` passed in to `f` will be closed immediately after `f` is
     * invoked and returned to the connection pool, so make sure you don't
@@ -68,18 +67,9 @@ trait LSpaceService extends HttpService {
           // release the graph back to the pool
           graph.close()
         }
-
-        // If the result is an Xor.Left, throw to mark the future as failed
-        result match {
-          case Xor.Left(err) =>
-            throw new RuntimeException(s"Graph operation failed: $err")
-          case _ => ()
-        }
-
-        // return successful results
+        // return result
         result
       }
-
   }
 
 
