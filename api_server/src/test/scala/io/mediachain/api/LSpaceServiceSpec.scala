@@ -15,7 +15,7 @@ object LSpaceServiceSpec extends BaseSpec
   val graphFactory = MigrationHelper.newInMemoryGraphFactory()
   val context = GraphFixture.Context(graphFactory.getTx)
 
-  def is =
+  def is = sequential ^
     s2"""
        returns a canonical from GET "/" $returnsFirstCanonical
        returns a canonical by ID $returnsACanonical
