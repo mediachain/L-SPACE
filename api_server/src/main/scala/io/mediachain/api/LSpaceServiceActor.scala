@@ -3,6 +3,7 @@ package io.mediachain.api
 import java.util.UUID
 
 import akka.actor.{Actor, Props}
+import cats.data.Xor
 import spray.routing.HttpService
 import io.mediachain.api.util.SprayHelpers
 import org.apache.tinkerpop.gremlin.orientdb.OrientGraphFactory
@@ -66,23 +67,23 @@ trait LSpaceService extends HttpService {
     }
 
 
-  import operations.Translation._
-  val translationRoutes =
-    (post & pathPrefix("translate")) {
-      path(Segment) { partnerName: String =>
-        entity(as[String]) { rawMetadataString: String =>
-          completeXor(translateRawMetadata(partnerName, rawMetadataString))
-        }
-      }
-    }
-
   val ingestionRoutes =
     (post & pathPrefix("ingest")) {
       complete(???)
     }
 
+
+  import operations.Merging._
+  val mergeRoutes =
+    (post & path("merge" / JavaUUID / "into" / JavaUUID)) {
+      (childCanonicalID, parentCanonicalID) =>
+        completeXor {
+          withGraph(mergeCanonicals(childCanonicalID, parentCanonicalID))
+        }
+    }
+
   val baseRoute =
     canonicalRoutes ~
-      translationRoutes ~
+      mergeRoutes ~
       ingestionRoutes
 }
