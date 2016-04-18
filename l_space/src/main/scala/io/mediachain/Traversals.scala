@@ -5,12 +5,14 @@ import java.util.UUID
 
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.BulkSet
 import shapeless.HNil
+
 import scala.collection.JavaConverters._
 import gremlin.scala._
 import Types._
 import core.GraphError
 import core.GraphError._
 import cats.data.Xor
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal
 import shapeless.HList
 
 object Traversals {
@@ -72,6 +74,27 @@ object Traversals {
         * graph.V ~> canonicalsWithID(someID) >> (_.headOption)
         */
       def >>[T](f: GremlinScala[End, Labels] => T): T = f(gs)
+
+      private def start[A] = __[A]()
+
+      private def asTraversals[S,E](trans: (GremlinScala[S, HNil] ⇒ GremlinScala[E, _])*) =
+        trans.map(_.apply(start).traversal)
+
+      def union[A](unionTraversals: (GremlinScala[End, HNil] ⇒ GremlinScala[A, _])*) =
+        GremlinScala[A, Labels](gs.traversal.union(asTraversals(unionTraversals: _*): _*))
+
+      def coalesce[A](coalesceTraversals: (GremlinScala[End, HNil] ⇒ GremlinScala[A, _])*): GremlinScala[A, Labels] =
+        GremlinScala[A, Labels](gs.traversal.coalesce(asTraversals(coalesceTraversals: _*): _*))
+
+      def constant[A](value: A) = GremlinScala[A, Labels](gs.traversal.constant(value))
+
+      def matching[A](traversalPipelines: (GremlinScala[End, HNil] => GremlinScala[_, _])*)
+      : GremlinScala[java.util.Map[String, A], Labels] = {
+        val traversals = traversalPipelines.map(_.apply(start).traversal)
+          .map(_.asInstanceOf[GraphTraversal[End, _]])
+
+        gs.`match`[A](traversals:_*)
+      }
     }
 
 
