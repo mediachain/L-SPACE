@@ -9,7 +9,8 @@ import io.mediachain.Types._
 import io.mediachain.core.GraphError.CanonicalNotFound
 import io.mediachain.util.JsonUtils
 import org.json4s._
-
+import org.apache.tinkerpop.gremlin.process.traversal.Path
+import org.json4s.JsonAST.JObject
 
 object CanonicalQueries {
   import Traversals.{GremlinScalaImplicits, VertexImplicits}
@@ -78,28 +79,47 @@ object CanonicalQueries {
         .flatMap(canonicalToBlobObject(graph, _, withRaw))
   }
 
-  def historyForCanonical(canonicalID: UUID)(graph: Graph): Option[JObject] = {
+  def historyForCanonical(canonicalID: UUID)(graph: Graph): JObject = {
+    import collection.JavaConverters._
     val treeXor = Traversals.canonicalsWithUUID(graph.V, canonicalID).findSubtreeXor
 
     val author = StepLabel[Vertex]("author")
     val raw = StepLabel[Vertex]("raw")
     val blob = StepLabel[Vertex]("blob")
 
-    for {
-      tree <- treeXor.toOption
+    val unionTraversal = __[(String, Vertex)].union(
+      __[Vertex].identity.map(v => "blob" -> v),
+      __.out(AuthoredBy).map(v => "author" -> v),
+      __.out(TranslatedFrom).map(v => "raw" -> v)
+    ).traversal
+
+    def pathTuplesToScalaTuples(path: Path): List[List[(String, Vertex)]] =
+      path.objects.asScala.map(_.asInstanceOf[java.util.ArrayList[(String, Vertex)]].asScala.toList).toList
+
+    val revisionsJ: List[Option[JObject]] = for {
+      tree <- treeXor.toOption.toList
       canonicalGS = Traversals.canonicalsWithUUID(tree.V, canonicalID)
-      canonical <- canonicalGS.toCC[Canonical].headOption
-
-      revisions = Traversals.describingOrModifyingBlobs(tree.V, canonical).toList
-      revisionBlobs = revisions.flatMap(vertexToMetadataBlob)
+      path <- canonicalGS
+        .until(_.not(_.out(ModifiedBy, DescribedBy)))
+        .repeat(_.out(DescribedBy, ModifiedBy))
+        .path.by(unionTraversal.fold).headOption.toList
+      steps = pathTuplesToScalaTuples(path)
+      step <- steps
     } yield {
-      val res = tree.V.out(DescribedBy).out(ModifiedBy).as(blob).out(AuthoredBy).as(author).out(TranslatedFrom).as(raw).select((raw, author, blob)).toList
-      val revisionsJ = revisionBlobs.map(blobToJObject)
-      ("canonicalID" -> canonical.canonicalID) ~
-        ("revisions" -> revisionsJ)
-    }
-  }
+      val stepMap = step.toMap
+      val blobO = stepMap.get("blob").map(_.toCC[ImageBlob])
+      val authorO = stepMap.get("author").map(_.toCC[Person])
+      val rawO = stepMap.get("raw").map(_.toCC[RawMetadataBlob])
 
+      blobO.map { blob =>
+        ("artefact" -> (("type" -> ImageBlob.toString) ~ blobToJObject(blob) ~ ("author" -> authorO.map(blobToJObject)))) ~
+          ("raw" -> rawO.map(blobToJObject))
+      }
+    }
+
+    ("canonicalID" -> canonicalID.toString) ~
+      ("revisions" -> revisionsJ)
+  }
 
   def worksForPersonWithCanonicalID(canonicalID: UUID)(graph: Graph)
   : Option[JObject] = {
