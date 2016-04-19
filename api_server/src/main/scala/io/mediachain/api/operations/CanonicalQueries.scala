@@ -89,7 +89,8 @@ object CanonicalQueries {
 
     val unionTraversal = __[(String, Vertex)].union(
       __[Vertex].identity.map(v => "blob" -> v),
-      __.out(AuthoredBy).map(v => "author" -> v),
+      // FIXME: below just finds the first revision
+      __.out(AuthoredBy).out(DescribedBy).map(v => "author" -> v),
       __.out(TranslatedFrom).map(v => "raw" -> v)
     ).traversal
 
@@ -103,7 +104,7 @@ object CanonicalQueries {
         .until(_.not(_.out(ModifiedBy, DescribedBy)))
         .repeat(_.out(DescribedBy, ModifiedBy))
         .path.by(unionTraversal.fold).headOption.toList
-      steps = pathTuplesToScalaTuples(path)
+      steps = pathTuplesToScalaTuples(path).tail // discard first element (canonical)
       step <- steps
     } yield {
       val stepMap = step.toMap
