@@ -2,7 +2,7 @@ package io.mediachain.api
 
 import io.mediachain.{BaseSpec, GraphFixture}
 import io.mediachain.Types._
-import org.specs2.matcher.{JsonMatchers, JsonType, Matcher}
+import org.specs2.matcher.{JsonMatchers, JsonString, JsonType, Matcher}
 import spray.testkit.Specs2RouteTest
 import spray.http.StatusCodes._
 import gremlin.scala._
@@ -45,11 +45,15 @@ object LSpaceServiceSpec extends BaseSpec
     }
   }
 
-  private def aRevisionWith(blob: ImageBlob): Matcher[String] = {
+  private def artefactWith(blob: ImageBlob): Matcher[String] = {
+    // TODO: handle external_ids, signatures, ...
     /("title").andHave(blob.title) and
     /("description").andHave(blob.description) and
     /("date").andHave(blob.date)
-    // TODO: handle external_ids, signatures, ...
+  }
+
+  private def aRevisionWith(blob: ImageBlob): Matcher[String] = {
+    /("artefact").andHave(artefactWith(blob).asInstanceOf[Matcher[JsonType]])
   }
 
   private def haveRevisions(revisions: Matcher[String]*): Matcher[String] =
@@ -65,7 +69,6 @@ object LSpaceServiceSpec extends BaseSpec
         List(context.objects.imageBlob, context.objects.modifiedImageBlob).map(aRevisionWith):_*)
     }
   }
-
 
   def returnsWorks = {
     val personCanonicalID = context.objects.personCanonical.canonicalID
