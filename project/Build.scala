@@ -48,6 +48,12 @@ object LSpaceBuild extends Build{
     .dependsOn(l_space % "test->test")
     .dependsOn(core)
 
+  lazy val api_server = project
+    .settings(scalaSettings: _*)
+    .dependsOn(l_space)
+    .dependsOn(l_space % "test->test")
+    .dependsOn(core)
+
   lazy val core = project
     .settings(scalaSettings: _*)
 
@@ -58,10 +64,17 @@ object LSpaceBuild extends Build{
     "orientdb-migrations-root"
   )
 
-
+  // aggregate means commands will cascade to the subprojects
+  // dependsOn means classes will be available
   lazy val root = (project in file("."))
     .aggregate(core, l_space,
-      translation_engine)
+      translation_engine, api_server)
     .dependsOn(core, l_space,
-      translation_engine)
+      translation_engine, api_server)
+
+  // for separating work on CircleCI containers (try to keep these balanced)
+  lazy val circle_1 = project
+    .aggregate(translation_engine, api_server)
+  lazy val circle_2 = project
+    .aggregate(core, l_space)
 }
