@@ -2,18 +2,21 @@ package io.mediachain.api
 
 import io.mediachain.{BaseSpec, GraphFixture}
 import io.mediachain.Types._
-import org.specs2.matcher.{JsonMatchers, JsonString, JsonType, Matcher}
 import spray.testkit.Specs2RouteTest
 import spray.http.StatusCodes._
 import gremlin.scala._
 import io.mediachain.util.orient.MigrationHelper
+import org.json4s._
+import org.json4s.JsonDSL._
 
 object LSpaceServiceSpec extends BaseSpec
-  with Specs2RouteTest with LSpaceService with JsonMatchers {
+  with Specs2RouteTest with LSpaceService {
   def actorRefFactory = system
 
   val graphFactory = MigrationHelper.newInMemoryGraphFactory()
   val context = GraphFixture.Context(graphFactory.getTx)
+
+  import JsonSupport._
 
   def is =
     s2"""
@@ -23,10 +26,15 @@ object LSpaceServiceSpec extends BaseSpec
        returns the works by an author $returnsWorks
       """
 
+
   def returnsFirstCanonical = {
     Get("/canonicals") ~> baseRoute ~> check {
       status === OK
-      responseAs[String] must /#(0) /("canonicalID" -> context.objects.imageBlobCanonical.canonicalID)
+      val canonicalId = context.objects.imageBlobCanonical.canonicalID
+
+      responseAs[JArray] \\ "canonicalID" \\ classOf[JString] must contain(
+        canonicalId
+      )
     }
   }
 
@@ -34,39 +42,48 @@ object LSpaceServiceSpec extends BaseSpec
     val canonicalId = context.objects.imageBlobCanonical.canonicalID
     Get("/canonicals/" + canonicalId) ~> baseRoute ~> check {
       status === OK
-      responseAs[String] must /("canonicalID" -> canonicalId)
+      responseAs[JObject] \ "canonicalID" must_== JString(canonicalId)
     }
     Get("/canonicals/" + canonicalId + "?with_raw=1") ~> baseRoute ~> check {
       status === OK
-      val r = responseAs[String]
-      println(r)
-      r must /("canonicalID" -> canonicalId)
-      r must /("raw" -> startWith("{"))
+      val r = responseAs[JObject]
+      r \ "canonicalID" must_== JString(canonicalId)
+      r \ "raw" \ "blob" must beLike {
+        case JString(rawString) => rawString.trim must startWith("{")
+      }
     }
   }
 
-  private def artefactWith(blob: ImageBlob): Matcher[String] = {
-    // TODO: handle external_ids, signatures, ...
-    /("title").andHave(blob.title) and
-    /("description").andHave(blob.description) and
-    /("date").andHave(blob.date)
-  }
 
-  private def aRevisionWith(blob: ImageBlob): Matcher[String] = {
-    /("artefact").andHave(artefactWith(blob).asInstanceOf[Matcher[JsonType]])
-  }
+  private def matchBlob(blob: ImageBlob) =
+    beLike[JValue] {
+      case blobJObject: JObject => {
+        blobJObject.obj must contain(
+          "title" -> JString(blob.title),
+          "description" -> JString(blob.description),
+          "date" -> JString(blob.date)
+        )
+      }
+    }
 
-  private def haveRevisions(revisions: Matcher[String]*): Matcher[String] =
-    /("revisions").andHave(exactly(revisions:_*))
+  private def matchRevision(blob: ImageBlob) = {
+    beLike[JValue] {
+      case obj: JObject => (obj \ "artefact") must matchBlob(blob)
+    }
+  }
 
   def returnsASubtree = {
     val canonicalId = context.objects.imageBlobCanonical.canonicalID
     Get("/canonicals/" + canonicalId + "/history") ~> baseRoute ~> check {
       status === OK
-      val r = responseAs[String]
-      r aka "canonical ID" must /("canonicalID" -> canonicalId)
-      r aka "revisions list" must haveRevisions(
-        List(context.objects.imageBlob, context.objects.modifiedImageBlob).map(aRevisionWith):_*)
+      val r = responseAs[JObject]
+      (r \ "canonicalID") must be_== (JString(canonicalId))
+
+      val revisions = (r \ "revisions").asInstanceOf[JArray]
+      revisions.arr must contain(
+        matchRevision(context.objects.imageBlob),
+        matchRevision(context.objects.modifiedImageBlob)
+      )
     }
   }
 
@@ -77,13 +94,13 @@ object LSpaceServiceSpec extends BaseSpec
       context.objects.imageByDuplicatePersonCanonical.canonicalID
 
     Get(s"/canonicals/$personCanonicalID/works") ~> baseRoute ~> check {
-      val r = responseAs[String]
-      r aka "person canonical ID" must /("canonicalID" -> personCanonicalID)
-      r aka "works list" must  /("works").andHave(
-        allOf(
-          /("canonicalID" -> imageBlobCanonicalID),
-          /("canonicalID" -> imageByDuplicateAuthorCanonicalID)
-        )
+      val r = responseAs[JObject]
+      (r \ "canonicalID") aka "person canonical ID" must_== JString(personCanonicalID)
+      val worksList = r \ "works" \\ "canonicalID" \\ classOf[JString]
+
+      worksList must contain(
+        imageBlobCanonicalID,
+        imageByDuplicateAuthorCanonicalID
       )
     }
   }
