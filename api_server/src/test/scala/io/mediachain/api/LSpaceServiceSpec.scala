@@ -15,12 +15,13 @@ object LSpaceServiceSpec extends BaseSpec
   val graphFactory = MigrationHelper.newInMemoryGraphFactory()
   val context = GraphFixture.Context(graphFactory.getTx)
 
-  def is =
+  def is = sequential ^
     s2"""
        returns a canonical from GET "/" $returnsFirstCanonical
        returns a canonical by ID $returnsACanonical
        returns a canonical's rev history by ID $returnsASubtree
        returns the works by an author $returnsWorks
+       merges two canonicals $mergesCanonicals
       """
 
   def returnsFirstCanonical = {
@@ -82,6 +83,25 @@ object LSpaceServiceSpec extends BaseSpec
           /("canonicalID" -> imageByDuplicateAuthorCanonicalID)
         )
       )
+    }
+  }
+
+
+  def mergesCanonicals = {
+    val imageCanonicalID = context.objects.imageBlobCanonical.canonicalID
+    val extraImageCanonical = context.objects.extraImageBlobCanonical
+    val extraImageCanonicalID = extraImageCanonical.canonicalID
+
+    Post(s"/merge/$extraImageCanonicalID/into/$imageCanonicalID") ~>
+      baseRoute ~> check {
+
+      val r = responseAs[String]
+      r aka "merged canonical id" must /("canonicalID" -> imageCanonicalID)
+
+      val graph = graphFactory.getTx
+      extraImageCanonical.vertex(graph) must beRightXor { v: Vertex =>
+        v.outE(SupersededBy).exists() must beTrue
+      }
     }
   }
 }
